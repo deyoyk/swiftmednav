@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: dark; }
+body { @apply bg-ink-950 text-slate-100 antialiased; }
+.card { @apply rounded-xl border border-white/10 bg-ink-900/80 shadow-sm; }
+.btn { @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition active:scale-[0.98] disabled:opacity-50; }
+.btn-primary { @apply btn bg-white text-ink-950 hover:bg-slate-200; }
+.btn-danger { @apply btn bg-critical text-white hover:bg-red-500; }
+.btn-ghost { @apply btn border border-white/10 bg-white/5 hover:bg-white/10; }
+.input { @apply w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-sm outline-none placeholder:text-slate-500 focus:border-white/30; }
+.badge { @apply inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-medium; }
+.leaflet-container { @apply rounded-xl; }

@@ -1,0 +1,44 @@
+/* SwiftMedNav map markers — professional unit-chip style. No global resets. */
+.smn-divicon { background: transparent; border: none; }
+
+.smn-amb {
+  width: 30px; height: 30px; border-radius: 9999px;
+  background: #0a1226; border: 2px solid #ffffff;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.55);
+  display: flex; align-items: center; justify-content: center;
+  color: #ffffff; font: 700 13px Inter, system-ui, sans-serif;
+}
+.smn-amb-sel { border-color: #ef4444; animation: smn-pulse 1.6s ease-in-out infinite; }
+@keyframes smn-pulse {
+  0%, 100% { box-shadow: 0 2px 10px rgba(0, 0, 0, 0.55), 0 0 0 0 rgba(239, 68, 68, 0.55); }
+  50% { box-shadow: 0 2px 10px rgba(0, 0, 0, 0.55), 0 0 0 7px rgba(239, 68, 68, 0); }
+}
+
+.smn-inc { position: relative; width: 38px; height: 38px; }
+.smn-inc-core {
+  position: absolute; inset: 11px; border-radius: 9999px;
+  background: #ef4444; border: 3px solid #ffffff;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.55);
+}
+.smn-inc::after {
+  content: ""; position: absolute; inset: 0; border-radius: 9999px;
+  border: 2px solid #ef4444; animation: smn-ring 1.8s ease-out infinite;
+}
+@keyframes smn-ring {
+  0% { transform: scale(0.55); opacity: 1; }
+  100% { transform: scale(1.15); opacity: 0; }
+}
+
+.smn-hosp {
+  width: 28px; height: 28px; border-radius: 9px;
+  background: #ffffff; border: 2px solid #e2e8f0;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+  display: flex; align-items: center; justify-content: center;
+  color: #dc2626; font: 800 15px Inter, system-ui, sans-serif;
+}
+
+.leaflet-container { font-family: Inter, system-ui, sans-serif; background: #0b1220; }
+.leaflet-container .leaflet-control-attribution {
+  background: rgba(6, 11, 24, 0.75); color: #94a3b8; font-size: 10px;
+}
+.leaflet-container .leaflet-control-attribution a { color: #cbd5e1; }

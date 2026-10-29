@@ -1,0 +1,59 @@
+{
+  "modelVersion": "rf-v1-seed42",
+  "synthetic": true,
+  "provenance": "synthetic generator (seed 42), NOT real traffic. Demo only.",
+  "splitSeed": 42,
+  "accuracy": 0.9983333333333333,
+  "classDist": {
+    "low": 2096,
+    "high": 857,
+    "medium": 47
+  },
+  "perClass": {
+    "low": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0
+    },
+    "medium": {
+      "precision": 1.0,
+      "recall": 0.9,
+      "f1": 0.9473684210526315
+    },
+    "high": {
+      "precision": 0.9941860465116279,
+      "recall": 1.0,
+      "f1": 0.9970845481049563
+    }
+  },
+  "confusionMatrix": {
+    "labels": [
+      "low",
+      "medium",
+      "high"
+    ],
+    "matrix": [
+      [
+        419,
+        0,
+        0
+      ],
+      [
+        0,
+        9,
+        1
+      ],
+      [
+        0,
+        0,
+        171
+      ]
+    ]
+  },
+  "featureImportance": {
+    "vehicle_count": 0.4715394067955986,
+    "avg_speed": 0.4435264568929066,
+    "hour": 0.08493413631149475
+  },
+  "datasetHash": "ab1c097721460fbf"
+}

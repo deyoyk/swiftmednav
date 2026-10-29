@@ -1,0 +1,11 @@
+{
+  "name": "swiftmednav",
+  "private": true,
+  "workspaces": ["web"],
+  "scripts": {
+    "dev": "npm --workspace web run dev",
+    "build": "npm --workspace web run build",
+    "test": "npm --workspace web run test",
+    "seed": "npm --workspace web run seed"
+  }
+}

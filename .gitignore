@@ -1,0 +1,27 @@
+# deps
+node_modules/
+.npm/
+
+# next
+web/.next/
+web/out/
+web/.seeded
+
+# env / secrets (example file IS committed)
+web/.env.local
+web/.env*.local
+*.pem
+*.key
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+ml-service/models/*.pkl
+ml-service/data/*.csv
+
+# logs / OS
+*.log
+.DS_Store
+Thumbs.db
