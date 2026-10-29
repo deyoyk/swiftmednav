@@ -3,7 +3,6 @@ import { useState } from "react";
 import { MapContainer, TileLayer, CircleMarker, Polyline, Popup, Tooltip, Marker } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import "leaflet-routing-machine/dist/leaflet-routing-machine.css";
 import "./map.css";
 import RoadRoute from "./RoadRoute";
 
@@ -57,10 +56,9 @@ export default function DispatchMap({ nodes, routeCoords, exploredOrder, inciden
   return (
     <MapContainer center={center} zoom={14} scrollWheelZoom style={{ height: 380, width: "100%" }}>
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a> | routing by <a href="https://router.project-osrm.org/">OSRM</a>'
-        url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-        subdomains="abcd"
-        maxZoom={20}
+        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors | routing by <a href="https://router.project-osrm.org/">OSRM</a> (both free, no key)'
+        url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+        maxZoom={19}
       />
       {nodes.filter((n) => n.id !== "HOSP").map((n) => (
         <CircleMarker key={n.id} center={[n.lat, n.lng]} radius={explored.has(n.id) ? 5 : 3}

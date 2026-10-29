@@ -6,6 +6,13 @@ REM   reseed - force re-run of the MongoDB demo seed, otherwise seeded once
 REM Needs: Node.js 20+ and Python 3.10+ on PATH. First run does npm install, pip install, model training, DB seed.
 title SwiftMedNav - web :3000 + ML :8001
 cd /d "%~dp0"
+if "%~1"=="clean" (
+  echo [clean] removing web\.next dev cache...
+  rmdir /s /q "web\.next" 2>nul
+  echo [clean] done. Run run.cmd again to start fresh.
+  pause
+  exit /b 0
+)
 set MODE=dev
 set RESEED=
 set FAILED=

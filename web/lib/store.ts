@@ -207,6 +207,25 @@ export function ackAssignment(incidentCode: string, accept: boolean, reason: str
     log(by, "assignment.rejected", "incident", incidentCode, reason ?? "");
     return a;
   }
+  // idempotent double-tap: already fully acknowledged
+  if (a.status === "acknowledged" && inc.status === "acknowledged") return a;
+  // driver acceptance finalizes a dispatcher proposal that was never
+  // explicitly approved — the proposal itself is dispatcher intent, and
+  // every step here is audited. This also heals half-updated state where
+  // a previous failed call mutated the assignment but not the incident.
+  if (a.status === "proposed" || (a.status === "acknowledged" && inc.status === "pending")) {
+    a.status = "approved";
+    a.approvedBy = `${by} (auto-approved on driver accept)`;
+    const r = getRecommendations().routes[a.vehicleId];
+    if (r) s.routes.set(incidentCode, r);
+    log(by, "assignment.auto-approved", "incident", incidentCode, `${a.vehicleId} approved on driver accept`);
+  }
+  if (inc.status === "pending" || inc.status === "rejected") {
+    transition(inc, "assigned", by, `approved ${a.vehicleId}`);
+  }
+  if (inc.status !== "assigned") {
+    throw Object.assign(new Error(`cannot acknowledge from status ${inc.status} — refresh; the incident may have moved on`), { status: 409 });
+  }
   a.status = "acknowledged";
   transition(inc, "acknowledged", by, `${a.vehicleId} acknowledged`);
   log(by, "assignment.acknowledged", "incident", incidentCode, a.vehicleId);

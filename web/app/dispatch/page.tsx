@@ -19,10 +19,21 @@ const AMB_POS: Record<string, { lng: number; lat: number; label: string }> = {
 };
 
 interface Rec { candidates: never[]; top3: never[]; routes: Record<string, { path: string[]; coords: [number, number][]; costSec: number; distanceKm: number; nodesExplored: number; execMs: number; valid: boolean; altCosts: number[]; exploredOrder: string[]; heuristic: string }>; closures: string[] }
+interface IncidentRow { code: string; status: string; priority: string; assignment?: { vehicleId: string; status: string } | null; etaMin?: number | null; updatedAt?: string }
+
+const UNIT_FLOW = ["pending", "assigned", "acknowledged", "enroute", "onscene", "onboard", "athospital", "handover", "completed"];
+
+function ago(iso?: string): string {
+  if (!iso) return "—";
+  const s = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 1000));
+  if (s < 60) return `${s}s ago`;
+  const m = Math.round(s / 60);
+  return m < 60 ? `${m}m ago` : `${Math.floor(m / 60)}h ${m % 60}m ago`;
+}
 
 export default function Dispatch() {
   const [code, setCode] = useState("INC-DEMO-001");
-  const [incidents, setIncidents] = useState<{ code: string; status: string; priority: string }[]>([{ code: "INC-DEMO-001", status: "pending", priority: "critical" }]);
+  const [incidents, setIncidents] = useState<IncidentRow[]>([{ code: "INC-DEMO-001", status: "pending", priority: "critical" }]);
   const [detail, setDetail] = useState<{ incident?: { status: string; timeline: { at: string; by: string; event: string; detail: string }[] }; assignment?: { vehicleId: string; status: string; strategy: string; overrideReason?: string } } | null>(null);
   const [rec, setRec] = useState<Rec | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
@@ -38,7 +49,7 @@ export default function Dispatch() {
       fetch(`/api/incidents/${code}`).then((x) => x.json()).catch(() => null),
       fetch("/api/dispatch/recommend").then((x) => x.json()).catch(() => null),
     ]);
-    if (il?.ok) setIncidents(il.data.incidents.map((i: { code: string; status: string; priority: string }) => ({ code: i.code, status: i.status, priority: i.priority })));
+    if (il?.ok) setIncidents(il.data.incidents.map((i: IncidentRow) => ({ code: i.code, status: i.status, priority: i.priority, assignment: i.assignment ?? null, etaMin: i.etaMin ?? null, updatedAt: i.updatedAt })));
     if (d?.ok) setDetail(d.data);
     if (r?.ok) { setRec(r.data); if (!selected && r.data.top3[0]) setSelected(r.data.top3[0].vehicleId); }
   }, [code]);
@@ -107,10 +118,38 @@ export default function Dispatch() {
         </section>
 
         <aside className="space-y-4 lg:col-span-2">
+          <Section title="Field units — live" sub="Driver ops as they happen: vehicle, run status, ETA. Click a unit to load it.">
+            {incidents.length === 0 && <EmptyState title="No incidents" body="Create one from /request." />}
+            <div className="space-y-2">
+              {incidents.filter((i) => i.status !== "completed" && i.status !== "cancelled").concat(incidents.filter((i) => i.status === "completed" || i.status === "cancelled")).map((i) => {
+                const idx = UNIT_FLOW.indexOf(i.status);
+                return (
+                  <button key={i.code} onClick={() => setCode(i.code)}
+                    className={`w-full rounded-xl border p-3 text-left transition ${code === i.code ? "border-sky-500/60 bg-sky-500/[0.07]" : "border-white/10 bg-white/[0.02] hover:border-white/25"}`}>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="font-mono text-xs font-semibold">{i.code}</span>
+                      <Badge tone={i.priority === "critical" ? "critical" : i.status === "completed" ? "ok" : "urgent"}>{i.status}</Badge>
+                      {i.assignment ? <Badge tone="info">{i.assignment.vehicleId} · {i.assignment.status}</Badge> : <Badge tone="neutral">unassigned</Badge>}
+                      <span className="ml-auto text-[11px] text-slate-500">{i.etaMin != null ? `ETA ${i.etaMin}m · ` : ""}upd {ago(i.updatedAt)}</span>
+                    </div>
+                    <div className="mt-1.5 flex items-center gap-0.5">
+                      {UNIT_FLOW.map((s, k) => (
+                        <span key={s} title={s} className={`h-1.5 flex-1 rounded-full ${idx >= 0 && k <= idx ? "bg-emerald-400" : "bg-white/10"}`} />
+                      ))}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+            <p className="text-[11px] text-slate-600">Updates live via SSE on every driver tap — ack, enroute, scene, onboard, hospital, handover.</p>
+          </Section>
           <Section title="Runbook" sub="Guided order: propose → approve → crew runs it → hospital → complete.">
             <div className="grid grid-cols-2 gap-2 text-sm">
               <button disabled={busy} className="btn-ghost justify-start" onClick={() => call("/api/assignments", "POST", { incidentCode: code, strategy: "capability-filtered-traffic-aware" })}><Ambulance size={14} /> 1 · Propose</button>
-              <button disabled={busy} className="btn-ghost justify-start" onClick={() => call(`/api/assignments/${code}/approve`, "POST", {})}><CheckCircle2 size={14} /> 2 · Approve top</button>
+              <button disabled={busy} className="btn-ghost justify-start" onClick={async () => {
+                if (!detail?.assignment) await call("/api/assignments", "POST", { incidentCode: code, strategy: "capability-filtered-traffic-aware" });
+                await call(`/api/assignments/${code}/approve`, "POST", {});
+              }}><CheckCircle2 size={14} /> 2 · Approve top</button>
               <button disabled={busy} className="btn-ghost justify-start" onClick={() => call(`/api/incidents/${code}/status`, "PATCH", { to: "enroute" })}>Driver enroute</button>
               <button disabled={busy} className="btn-ghost justify-start" onClick={() => call(`/api/incidents/${code}/status`, "PATCH", { to: "onscene" })}>On scene</button>
               <button disabled={busy} className="btn-ghost justify-start" onClick={() => call(`/api/incidents/${code}/status`, "PATCH", { to: "onboard" })}>Onboard</button>

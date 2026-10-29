@@ -13,7 +13,20 @@ export async function GET(req: Request) {
   if (priority) incidents = incidents.filter((i) => i.priority === priority);
   if (districtId) incidents = incidents.filter((i) => i.districtId === districtId);
   if (text) incidents = incidents.filter((i) => `${i.code} ${i.category} ${i.addressText}`.toLowerCase().includes(text));
-  return NextResponse.json({ ok: true, data: { incidents, simulated: true } });
+  const s = store();
+  const enriched = incidents.map((i) => {
+    const a = s.assignments.get(i.code);
+    const r = a ? s.routes.get(i.code) : undefined;
+    const last = i.timeline[i.timeline.length - 1];
+    return {
+      ...i,
+      assignment: a ? { vehicleId: a.vehicleId, status: a.status, strategy: a.strategy } : null,
+      etaMin: r ? Math.round(r.costSec / 60) : null,
+      distanceKm: r?.distanceKm ?? null,
+      updatedAt: last?.at ?? i.createdAt,
+    };
+  });
+  return NextResponse.json({ ok: true, data: { incidents: enriched, simulated: true } });
 }
 export async function POST(req: Request) {
   const rl = rateLimit(`incidents:${clientKey(req)}`, 20, 60);

@@ -14,6 +14,12 @@ RESEED=""
 for a in "$@"; do
   [ "$a" = "start" ] && MODE="start"
   [ "$a" = "reseed" ] && RESEED="1"
+  if [ "$a" = "clean" ]; then
+    echo "[clean] removing web/.next dev cache..."
+    rm -rf web/.next
+    echo "[clean] done. Run ./run.sh again to start fresh."
+    exit 0
+  fi
 done
 FAILED=""
 

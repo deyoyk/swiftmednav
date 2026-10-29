@@ -37,6 +37,14 @@ describe("dispatch state machine (E2E store)", () => {
     proposeAssignment("INC-DEMO-001", "AMB-B", "s", "dispatcher");
     expect(() => approveAssignment("INC-DEMO-001", "AMB-C", "oops", "dispatcher")).toThrow(/not eligible/);
   });
+  it("driver accept without explicit approve self-heals (auto-approve)", () => {
+    proposeAssignment("INC-DEMO-001", "AMB-B", "s", "dispatcher");
+    const a = ackAssignment("INC-DEMO-001", true, undefined, "driver");
+    expect(a.status).toBe("acknowledged");
+    expect(store().incidents.get("INC-DEMO-001")!.status).toBe("acknowledged");
+    // double-tap is idempotent, not an error
+    expect(ackAssignment("INC-DEMO-001", true, undefined, "driver").status).toBe("acknowledged");
+  });
   it("closure reroute keeps assignment routable", () => {
     proposeAssignment("INC-DEMO-001", "AMB-B", "s", "dispatcher");
     approveAssignment("INC-DEMO-001", undefined, undefined, "dispatcher");

@@ -37,8 +37,43 @@
   color: #dc2626; font: 800 15px Inter, system-ui, sans-serif;
 }
 
+/* moving ambulance puck: white ring, navy core, blue GPS dot, soft halo */
+.smn-driver { position: relative; width: 44px; height: 44px; }
+.smn-driver-core {
+  position: absolute; inset: 8px; border-radius: 9999px;
+  background: #0a1226; border: 4px solid #ffffff;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.6);
+}
+.smn-driver-core::after {
+  content: ""; position: absolute; inset: 5px; border-radius: 9999px;
+  background: #3b82f6;
+}
+.smn-driver::before {
+  content: ""; position: absolute; inset: 0; border-radius: 9999px;
+  background: rgba(59, 130, 246, 0.35);
+  animation: smn-ring 2s ease-out infinite;
+}
+
 .leaflet-container { font-family: Inter, system-ui, sans-serif; background: #0b1220; }
 .leaflet-container .leaflet-control-attribution {
   background: rgba(6, 11, 24, 0.75); color: #94a3b8; font-size: 10px;
 }
 .leaflet-container .leaflet-control-attribution a { color: #cbd5e1; }
+
+/* numbered stop pins for driver nav: 1 = pickup (red), 2 = hospital (navy) */
+.smn-stop { position: relative; width: 34px; height: 44px; }
+.smn-stop-pin {
+  position: absolute; left: 3px; top: 12px; width: 28px; height: 28px;
+  border-radius: 9999px 9999px 9999px 4px; transform: rotate(45deg);
+  border: 3px solid #ffffff; box-shadow: 0 3px 10px rgba(0, 0, 0, 0.55);
+}
+.smn-stop-1 .smn-stop-pin { background: #ef4444; }
+.smn-stop-2 .smn-stop-pin { background: #0a1226; }
+.smn-stop-n {
+  position: absolute; left: 0; top: 0; z-index: 1;
+  width: 20px; height: 20px; border-radius: 9999px;
+  background: #ffffff; color: #0a1226;
+  display: flex; align-items: center; justify-content: center;
+  font: 800 12px Inter, system-ui, sans-serif;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+}
