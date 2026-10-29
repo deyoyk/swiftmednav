@@ -1,7 +1,7 @@
 "use client";
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useState } from "react";
-import { Ambulance, CheckCircle2, ClipboardList, RotateCcw, TrafficCone } from "lucide-react";
+import { Ambulance, CheckCircle2, ClipboardList, NotebookPen, RotateCcw, TrafficCone } from "lucide-react";
 import ExplainPanel from "@/components/ExplainPanel";
 import { Badge, EmptyState, PageHeader, Section, Timeline } from "@/components/ui";
 const DispatchMap = dynamic(() => import("@/components/DispatchMap"), { ssr: false });
@@ -40,6 +40,7 @@ export default function Dispatch() {
   const [log, setLog] = useState<string[]>(["INC-DEMO-001 loaded (SIMULATED)."]);
   const [busy, setBusy] = useState(false);
   const [q, setQ] = useState("");
+  const [note, setNote] = useState("");
   const [showAstar, setShowAstar] = useState(true);
   const [road, setRoad] = useState<{ distanceM: number; timeS: number } | null>(null);
 
@@ -169,7 +170,21 @@ export default function Dispatch() {
             {rec && <p className="text-xs text-slate-400">closures: {rec.closures.join(", ") || "none"} · corridor mult 3x (high)</p>}
           </Section>
 
-          <Section title="Audit timeline" sub="Live. Duplicates, overrides and rejects are all recorded.">
+          <Section title="Audit timeline" sub="Live. Duplicates, overrides, rejects and ops notes are all recorded.">
+            <div className="flex gap-2">
+              <input className="input" placeholder="Log an ops note…" value={note} onChange={(e) => setNote(e.target.value)} aria-label="Ops note" />
+              <button className="btn-ghost shrink-0" disabled={busy || !note.trim()} onClick={async () => {
+                setBusy(true);
+                try {
+                  const r = await fetch("/api/comms", { method: "POST", headers: { "Content-Type": "application/json", "x-actor": "dispatcher" }, body: JSON.stringify({ incidentCode: code, kind: "note", text: note }) });
+                  const j = await r.json();
+                  if (!j.ok) throw new Error(j.error);
+                  setNote("");
+                  await refresh();
+                } catch (e) { setLog((l) => [...l.slice(-29), `note → ERR: ${e instanceof Error ? e.message : "failed"}`]); }
+                finally { setBusy(false); }
+              }}><NotebookPen size={14} /> Log</button>
+            </div>
             {(detail?.incident?.timeline.length ?? 0) + log.length === 0 ? <EmptyState title="No events yet" /> : (
               <div className="max-h-64 overflow-auto pr-1">
                 <Timeline items={[

@@ -26,7 +26,9 @@ export interface RouteInfo {
 }
 export interface Handover { incidentCode: string; vitals: Record<string, string>; notes: { at: string; by: string; text: string }[]; status: string; summary: string }
 
-const FLEET = [
+export interface FleetUnit { id: string; vehicleId: string; type: string; capabilities: string[]; status: string; nodeId: string; freshnessSec: number }
+
+const SEED_FLEET: FleetUnit[] = [
   { id: "a", vehicleId: "AMB-A", type: "BLS", capabilities: ["oxygen", "ventilator"], status: "available", nodeId: "A-base", freshnessSec: 30 },
   { id: "b", vehicleId: "AMB-B", type: "ALS", capabilities: ["oxygen", "ventilator"], status: "available", nodeId: "B-base", freshnessSec: 40 },
   { id: "c", vehicleId: "AMB-C", type: "BLS", capabilities: ["oxygen"], status: "available", nodeId: "N1", freshnessSec: 20 },
@@ -37,6 +39,7 @@ interface Store {
   assignments: Map<string, DemoAssignment>;
   routes: Map<string, RouteInfo>;
   handovers: Map<string, Handover>;
+  fleet: Map<string, FleetUnit>;
   hospital: { name: string; edAvail: number; edTotal: number; icuAvail: number; icuTotal: number; status: string; updatedAt: string };
   audit: AuditEntry[];
   closures: string[];
@@ -55,6 +58,7 @@ function freshStore(): Store {
       createdAt: new Date().toISOString(), idempotencyKey: "demo-001",
     }]]),
     assignments: new Map(), routes: new Map(), handovers: new Map(),
+    fleet: new Map(SEED_FLEET.map((a) => [a.vehicleId, { ...a }])),
     hospital: { name: "Govt Kilpauk (SIMULATED)", edAvail: 5, edTotal: 20, icuAvail: 2, icuTotal: 8, status: "open", updatedAt: new Date().toISOString() },
     audit: [{ at: new Date().toISOString(), actor: "seed", action: "incident.created", entity: "incident", entityId: "INC-DEMO-001", detail: "Anna Nagar simulated accident" }],
     closures: [], congestionMult: 3, listeners: new Set(), seq: 1,
@@ -81,7 +85,49 @@ function log(actor: string, action: string, entity: string, entityId: string, de
   return e;
 }
 
-export function fleet() { return FLEET.map((a) => ({ ...a })); }
+export function fleet(): FleetUnit[] { return [...store().fleet.values()].map((a) => ({ ...a })); }
+
+export const FLEET_STATUSES = ["available", "assigned", "enroute", "maintenance", "offline", "breakdown"] as const;
+export const FLEET_TYPES = ["BLS", "ALS", "NEONATAL", "SPECIALIST"] as const;
+
+export function registerAmbulance(input: { vehicleId: string; type: string; capabilities: string[]; nodeId: string }, by: string): FleetUnit {
+  const s = store();
+  const vehicleId = input.vehicleId.trim().toUpperCase();
+  if (!vehicleId) throw Object.assign(new Error("vehicleId required"), { status: 400 });
+  if (s.fleet.has(vehicleId)) throw Object.assign(new Error(`vehicle ${vehicleId} already registered`), { status: 409 });
+  if (!(FLEET_TYPES as readonly string[]).includes(input.type)) throw Object.assign(new Error(`unknown type ${input.type}`), { status: 400 });
+  if (!demoNodes.has(input.nodeId)) throw Object.assign(new Error(`unknown staging node ${input.nodeId}`), { status: 400 });
+  const unit: FleetUnit = {
+    id: `u${s.seq++}`, vehicleId, type: input.type,
+    capabilities: [...new Set(input.capabilities.map((c) => c.trim()).filter(Boolean))],
+    status: "available", nodeId: input.nodeId, freshnessSec: 0,
+  };
+  s.fleet.set(vehicleId, unit);
+  log(by, "fleet.registered", "ambulance", vehicleId, `${unit.type} staged at ${unit.nodeId} [${unit.capabilities.join(", ") || "no capabilities"}]`);
+  return { ...unit };
+}
+
+export function setAmbulanceStatus(vehicleId: string, status: string, by: string): FleetUnit {
+  const s = store();
+  const a = s.fleet.get(vehicleId);
+  if (!a) throw Object.assign(new Error("ambulance not found"), { status: 404 });
+  if (!(FLEET_STATUSES as readonly string[]).includes(status)) throw Object.assign(new Error(`unknown status ${status}`), { status: 400 });
+  if ([...s.assignments.values()].some((x) => x.vehicleId === vehicleId && ["proposed", "approved", "acknowledged"].includes(x.status)) && !["available", "assigned", "enroute"].includes(status)) {
+    throw Object.assign(new Error(`${vehicleId} has an active run — reassign first`), { status: 409 });
+  }
+  a.status = status;
+  a.freshnessSec = 0;
+  log(by, "fleet.status", "ambulance", vehicleId, `status → ${status}`);
+  return { ...a };
+}
+
+export function addComms(incidentCode: string, kind: string, text: string, by: string) {
+  const inc = getInc(incidentCode);
+  if (!["contact", "roadblock", "note"].includes(kind)) throw Object.assign(new Error(`unknown comms kind ${kind}`), { status: 400 });
+  const detail = text.trim().slice(0, 500) || "(no message)";
+  pushTimeline(inc, by, `comms.${kind}`, detail);
+  return log(by, `comms.${kind}`, "incident", incidentCode, detail);
+}
 
 export function edgesNow() {
   const s = store();
@@ -100,7 +146,7 @@ export function getRecommendations() {
   // attach per-candidate route detail for explain panel
   const routes: Record<string, RouteInfo> = {};
   for (const c of rec.candidates.filter((x) => x.eligible)) {
-    const amb = FLEET.find((a) => a.id === c.ambulanceId)!;
+    const amb = [...store().fleet.values()].find((a) => a.id === c.ambulanceId)!;
     const r = astar(demoNodes, edgesNow().map((e) => e.segId === "seg-a3-congested" ? { ...e, congestionMult: (e.congestionMult ?? 1) * 1 } : e).map((e) => {
       const m = cong.get(e.segId);
       return m ? { ...e, congestionMult: (e.congestionMult ?? 1) * m.mult } : e;
@@ -291,10 +337,10 @@ export function analytics() {
   const avgEta = Math.round((getRecommendations().top3[0]?.etaSec ?? 0) / 60);
   return {
     simulated: true,
-    totals: { incidents: incs.length, active, availableAmbulances: FLEET.length, completedHandovers: [...s.handovers.values()].filter((h) => h.status === "accepted").length },
+    totals: { incidents: incs.length, active, availableAmbulances: [...s.fleet.values()].filter((a) => a.status === "available").length, completedHandovers: [...s.handovers.values()].filter((h) => h.status === "accepted").length },
     responseTimeMin: { p50: avgEta, p90: avgEta + 6, note: "SIMULATED estimates from A* on demo graph, not real measurements" },
     categoryDist: incs.reduce<Record<string, number>>((m, i) => ({ ...m, [i.category]: (m[i.category] ?? 0) + 1 }), {}),
-    utilization: FLEET.map((a) => ({ vehicle: a.vehicleId, assigned: s.assignments.has("INC-DEMO-001") && [...s.assignments.values()].some((x) => x.vehicleId === a.vehicleId) ? 1 : 0 })),
+    utilization: [...s.fleet.values()].map((a) => ({ vehicle: a.vehicleId, assigned: [...s.assignments.values()].some((x) => x.vehicleId === a.vehicleId) ? 1 : 0 })),
     congestionTrend: [{ seg: "seg-a3-congested", level: "high", mult: s.congestionMult, source: "simulated" }],
     auditCount: s.audit.length,
   };

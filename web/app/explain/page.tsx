@@ -13,8 +13,14 @@ export default function Explain() {
   const [ml, setMl] = useState<ML | null>(null);
   const [sel, setSel] = useState<string | null>(null);
   useEffect(() => {
-    fetch("/api/dispatch/recommend").then((x) => x.json()).then((j) => { if (j.ok) { setRec(j.data); setSel(j.data.top3[0]?.vehicleId ?? null); } }).catch(() => {});
-    fetch("/api/ml/model-info").then((x) => x.json()).then((j) => j.ok && setMl(j.data)).catch(() => {});
+    const load = () => {
+      fetch("/api/dispatch/recommend").then((x) => x.json()).then((j) => { if (j.ok) { setRec(j.data); setSel((s) => s ?? j.data.top3[0]?.vehicleId ?? null); } }).catch(() => {});
+      fetch("/api/ml/model-info").then((x) => x.json()).then((j) => j.ok && setMl(j.data)).catch(() => {});
+    };
+    load();
+    const es = new EventSource("/api/stream");
+    es.onmessage = load;
+    return () => es.close();
   }, []);
   const r = sel && rec?.routes ? rec.routes[sel] : null;
   const maxImp = Math.max(0.0001, ...Object.values(ml?.featureImportance ?? { x: 0 }));

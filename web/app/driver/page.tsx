@@ -159,7 +159,6 @@ export default function Driver() {
   }
 
   const nx = NEXT[status];
-  const assigned = !!d?.assignment && !["proposed", "approved"].includes(d.assignment.status);
 
   return (
     <main className="relative -mx-4 -my-6 h-[calc(100vh-64px)] min-h-[540px] overflow-hidden">

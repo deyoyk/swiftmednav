@@ -172,4 +172,24 @@ async function main() {
     if (!u.some((e) => e.action === "assignment.approved")) throw new Error("approval missing from audit");
     return `incidents=${a.totals.incidents} audit=${u.length}`;
   });
+
+  await step("fleet register + status + guard", async () => {
+    let r = await req("POST", "/api/fleet", { cookie: disp.cookie, actor: "dispatcher", body: { vehicleId: "AMB-X", type: "NEONATAL", capabilities: ["oxygen", "incubator"], nodeId: "HOSP" } });
+    need(r.status, r.json, 201);
+    r = await req("PATCH", "/api/fleet", { cookie: disp.cookie, actor: "dispatcher", body: { vehicleId: "AMB-X", status: "maintenance" } });
+    need(r.status, r.json);
+    if (r.json.data.status !== "maintenance") throw new Error("status not applied");
+    r = await req("POST", "/api/fleet", { cookie: disp.cookie, body: { vehicleId: "AMB-X", type: "BLS", capabilities: [], nodeId: "N1" } });
+    if (r.status !== 409) throw new Error(`dup fleet want 409, got ${r.status}`);
+    return "AMB-X registered + stood down";
+  });
+
+  await step("comms note lands in audit timeline", async () => {
+    let r = await req("POST", "/api/comms", { cookie: disp.cookie, actor: "dispatcher", body: { incidentCode: "INC-DEMO-001", kind: "note", text: "smoke check note" } });
+    need(r.status, r.json);
+    r = await req("GET", "/api/analytics/audit", { cookie: admin.cookie });
+    const u = need(r.status, r.json);
+    if (!u.some((e) => e.action === "comms.note")) throw new Error("comms missing from audit");
+    return "audited";
+  });
 }
