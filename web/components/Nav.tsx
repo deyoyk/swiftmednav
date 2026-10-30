@@ -6,6 +6,25 @@ import { LayoutDashboard } from "lucide-react";
 
 type SessionData = { sub: string; role: string; districtId?: string; name?: string };
 
+const ROLE_TONE: Record<string, string> = {
+  super_admin: "border-violet-400/40 bg-violet-400/10 text-violet-200",
+  district_admin: "border-violet-400/40 bg-violet-400/10 text-violet-200",
+  dispatcher: "border-sky-400/40 bg-sky-400/10 text-sky-200",
+  driver: "border-emerald-400/40 bg-emerald-400/10 text-emerald-200",
+  emt: "border-emerald-400/40 bg-emerald-400/10 text-emerald-200",
+  hospital_coordinator: "border-white/20 bg-white/10 text-white",
+  citizen: "border-amber-400/40 bg-amber-400/10 text-amber-200",
+};
+const ROLE_LABEL: Record<string, string> = {
+  super_admin: "Admin",
+  district_admin: "District admin",
+  dispatcher: "Dispatch",
+  driver: "Driver",
+  emt: "EMT",
+  hospital_coordinator: "Hospital",
+  citizen: "Citizen",
+};
+
 const ROLE_LINKS: Record<string, { href: string; label: string }[]> = {
   dispatcher: [
     { href: "/dispatch", label: "Dispatch" },
@@ -99,7 +118,7 @@ export default function Nav() {
                 );
               })}
             </nav>
-            <span className="badge border-white/15 bg-white/5 text-slate-200">{session.role}</span>
+            <span className={`badge shrink-0 ${ROLE_TONE[session.role] ?? "border-white/15 bg-white/5 text-slate-200"}`}>{ROLE_LABEL[session.role] ?? session.role}</span>
             <button type="button" className="btn-ghost px-3 py-1.5 text-xs" onClick={signOut}>
               Sign out
             </button>

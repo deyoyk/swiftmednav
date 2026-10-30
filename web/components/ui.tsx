@@ -54,7 +54,7 @@ export function Section({ title, sub, actions, children, wide }: {
     <section className={`card space-y-3 ${wide ? "p-5" : "p-4"}`}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h2 className="text-sm font-semibold text-slate-100">{title}</h2>
+          <h2 className="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-200">{title}</h2>
           {sub && <p className="mt-0.5 text-xs text-slate-500">{sub}</p>}
         </div>
         {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
