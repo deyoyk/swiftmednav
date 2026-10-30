@@ -161,11 +161,13 @@ export default function Driver() {
   const nx = NEXT[status];
 
   return (
-    <main className="relative -mx-4 -my-6 h-[calc(100vh-64px)] min-h-[540px] overflow-hidden">
+    <main className="relative -mx-4 -my-6 h-[calc(100vh-64px)] min-h-[540px] w-[calc(100%+2rem)] overflow-hidden sm:mx-auto sm:w-full sm:max-w-[430px] sm:rounded-3xl sm:border sm:border-white/10 sm:shadow-2xl">
       <div className="absolute inset-0">
         <DriverMap waypoints={waypoints} pos={pos} onRoute={setRoad}
-          maneuverDots={road?.steps.map((s) => s.location) ?? []}
-          nextManeuver={nextStep?.location ?? null} />
+          maneuverDots={(road?.steps ?? []).filter((s) => s.at >= traveled - 20).map((s) => s.location)}
+          nextManeuver={nextStep?.location ?? null}
+          roadLine={road?.line ?? null}
+          traveledM={traveled} />
       </div>
 
       {/* tiny status pill + mute: the only chrome besides the one action */}
