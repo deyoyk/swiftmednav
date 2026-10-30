@@ -89,12 +89,15 @@ export default function Nav() {
         </Link>
         {session ? (
           <>
-            <nav className="flex flex-1 flex-wrap items-center gap-1.5">
-              {links.map((l) => (
-                <Link key={l.href} href={l.href} className="btn-ghost px-3 py-1.5 text-xs">
-                  {l.label}
-                </Link>
-              ))}
+            <nav className="flex flex-1 flex-nowrap items-center gap-1.5 overflow-x-auto py-0.5 md:flex-wrap md:overflow-visible">
+              {links.map((l) => {
+                const active = pathname === l.href;
+                return (
+                  <Link key={l.href} href={l.href} aria-current={active ? "page" : undefined} className={`btn-ghost px-3 py-1.5 text-xs ${active ? "border-sky-400/40 bg-sky-400/10 text-sky-100" : ""}`}>
+                    {l.label}
+                  </Link>
+                );
+              })}
             </nav>
             <span className="badge border-white/15 bg-white/5 text-slate-200">{session.role}</span>
             <button type="button" className="btn-ghost px-3 py-1.5 text-xs" onClick={signOut}>

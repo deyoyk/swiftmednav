@@ -18,9 +18,8 @@ const FLOW = ["Citizen reports", "A* ranks ambulances", "Dispatcher approves", "
 export default function Home() {
   return (
     <main className="space-y-6">
-      <header className="card relative overflow-hidden p-6 sm:p-8">
-        <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-red-500/10 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-24 left-1/3 h-64 w-64 rounded-full bg-sky-500/10 blur-3xl" />
+      <header className="card relative overflow-hidden p-6 sm:p-8" style={{ backgroundImage: "radial-gradient(rgba(148,163,184,0.13) 1px, transparent 1px)", backgroundSize: "18px 18px" }}>
+        <div className="absolute inset-x-0 top-0 h-0.5 bg-red-500/70" />
         <p className="badge border-white/15 bg-white/5 text-slate-300">SwiftMedNav · CSE (AI/ML) academic demo</p>
         <h1 className="mt-3 max-w-2xl text-3xl font-semibold tracking-tight sm:text-4xl">Emergency coordination, <span className="text-slate-400">simulated</span> end-to-end.</h1>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-slate-400">OSRM road routing + A* search + Random Forest congestion prediction + explainable dispatch, over a Chennai digital twin. Every screen below is live — sign in and run the full loop.</p>

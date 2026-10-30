@@ -18,7 +18,7 @@ export function PageHeader({ eyebrow, title, sub, live, actions }: {
             </span>
           )}
         </div>
-        <h1 className="text-xl font-semibold tracking-tight text-slate-50">{title}</h1>
+        <h1 className="font-display text-xl font-semibold tracking-tight text-slate-50">{title}</h1>
         {sub && <p className="max-w-2xl text-sm text-slate-400">{sub}</p>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
@@ -40,7 +40,7 @@ export function Stat({ icon: Icon = Activity, label, value, sub, tone = "default
         <span className="text-xs text-slate-400">{label}</span>
         <Icon size={15} className="text-slate-500" />
       </div>
-      <div className="mt-1 pl-2 text-2xl font-semibold tracking-tight">{value}</div>
+      <div className="mt-1 pl-2 font-display text-2xl font-semibold tracking-tight tnum">{value}</div>
       {sub && <div className="mt-0.5 pl-2 text-xs text-slate-500">{sub}</div>}
     </div>
   );

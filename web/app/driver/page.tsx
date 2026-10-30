@@ -211,9 +211,9 @@ export default function Driver() {
           </div>
         ) : (
           <div className="space-y-3">
-            <div className="flex items-end justify-between gap-3">
+            <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
-                <div className="text-5xl font-bold tracking-tight text-white">{etaMin ?? "—"}<span className="ml-1 text-lg font-medium text-slate-400">min</span></div>
+                <div className="font-display text-5xl font-bold tracking-tight text-white tnum">{etaMin ?? "—"}<span className="ml-1 text-lg font-medium text-slate-400">min</span></div>
                 <div className="mt-0.5 text-sm text-slate-400">{fmtDist(remaining)} to {destName}</div>
               </div>
               <div className="max-w-[55%] text-right">
