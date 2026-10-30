@@ -11,7 +11,7 @@ export interface SessionInfo {
   districtId?: string;
 }
 
-const DISPATCHER_PREFIXES = ["/dispatch", "/fleet", "/simulation", "/analytics", "/explain", "/request"];
+const DISPATCHER_PREFIXES = ["/dispatch", "/fleet", "/simulation", "/analytics", "/explain", "/algorithms", "/request"];
 const PUBLIC_PREFIXES = ["/login"];
 
 function matches(pathname: string, prefix: string): boolean {

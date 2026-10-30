@@ -26,6 +26,17 @@ def main():
         ok &= abs(sum(b["probabilities"].values()) - 1.0) < 1e-6 and b["source"] == "predicted"
     else:
         print("SKIP (server down — start with: uvicorn app:app --port 8001)"); return
+    # 2b. decision-path trace through real trees (first tree must split on a real feature)
+    s, b = check("/tree-path", {"vehicle_count": 150, "avg_speed": 10, "hour": 9})
+    print("tree-path ->", s)
+    if s == 200:
+        p0 = (b.get("paths") or [{}])[0]
+        n0 = (p0.get("nodes") or [{}])[0]
+        ok &= b.get("class") == "high" and isinstance(p0.get("nodes"), list) and len(p0["nodes"]) > 0
+        ok &= n0.get("feature") in ("vehicle_count", "avg_speed", "hour") and n0.get("branch") in ("left", "right")
+        print("  tree0 first split:", {k: n0.get(k) for k in ("feature", "op", "threshold", "value", "branch")})
+    else:
+        print("SKIP tree-path (needs trained rf_model.pkl + fresh server)");
     # 3. model info carries provenance + synthetic flag
     s, b = check("/model/info")
     print("model/info ->", s); ok &= (s == 200 and b.get("synthetic") is True and "provenance" in b)

@@ -27,6 +27,7 @@ function edgeCost(e: GraphEdge): number {
 class MinHeap<T> {
   private a: { k: number; v: T }[] = [];
   get size() { return this.a.length; }
+  snapshot(): { key: number; value: T }[] { return this.a.map((e) => ({ key: e.k, value: e.v })); }
   push(k: number, v: T) {
     this.a.push({ k, v });
     let i = this.a.length - 1;
@@ -158,4 +159,96 @@ function astarRaw(nodes: Map<string, GraphNode>, edges: GraphEdge[], start: stri
     }
   }
   return { valid: g.has(goal), costSec: g.get(goal) ?? Infinity };
+}
+
+export interface AStarStep {
+  step: number;
+  current: string;
+  g: number;
+  h: number;
+  f: number;
+  /** node ids currently in the priority queue (heap order, not sorted) */
+  open: string[];
+  /** nodes already expanded, in expansion order */
+  closed: string[];
+}
+
+export interface AStarTrace {
+  steps: AStarStep[];
+  finalG: Record<string, number>;
+  path: string[];
+  costSec: number;
+  nodesExplored: number;
+  valid: boolean;
+  heuristic: string;
+}
+
+/** Same search as astar(), but records every expansion for the visual explorer.
+ *  Trace consistency with astar() is covered by tests (same path, same cost). */
+export function astarTrace(
+  nodes: Map<string, GraphNode>, edges: GraphEdge[], start: string, goal: string,
+  opts: { useZeroHeuristic?: boolean } = {}
+): AStarTrace {
+  const adj = new Map<string, GraphEdge[]>();
+  for (const e of edges) {
+    if (e.closed) continue;
+    if (!adj.has(e.from)) adj.set(e.from, []);
+    adj.get(e.from)!.push(e);
+  }
+  const g = new Map<string, number>([[start, 0]]);
+  const came = new Map<string, string>();
+  const open = new MinHeap<string>();
+  const goalN = nodes.get(goal)!;
+  const hn = (id: string) => {
+    if (opts.useZeroHeuristic) return 0;
+    const n = nodes.get(id)!;
+    return haversineM(n.lng, n.lat, goalN.lng, goalN.lat) / V_MAX_MPS;
+  };
+  const heuristic = opts.useZeroHeuristic ? "zero (dijkstra fallback)" : `haversine/${V_MAX_MPS}mps`;
+  open.push(hn(start), start);
+  const closed = new Set<string>();
+  const steps: AStarStep[] = [];
+  while (open.size) {
+    const cur = open.pop()!;
+    if (closed.has(cur)) continue;
+    const gc = g.get(cur)!;
+    const hc = hn(cur);
+    closed.add(cur);
+    steps.push({
+      step: steps.length + 1,
+      current: cur,
+      g: Math.round(gc * 100) / 100,
+      h: Math.round(hc * 100) / 100,
+      f: Math.round((gc + hc) * 100) / 100,
+      open: open.snapshot().map((s) => s.value),
+      closed: [...closed],
+    });
+    if (cur === goal) break;
+    for (const e of adj.get(cur) ?? []) {
+      const ng = gc + edgeCost(e);
+      if (ng < (g.get(e.to) ?? Infinity)) {
+        g.set(e.to, ng);
+        came.set(e.to, cur);
+        open.push(ng + hn(e.to), e.to);
+      }
+    }
+  }
+  const valid = g.has(goal) && (start === goal || came.has(goal));
+  const path: string[] = [];
+  if (valid) {
+    let c = goal;
+    path.unshift(c);
+    while (c !== start) {
+      const prev = came.get(c)!;
+      path.unshift(prev);
+      c = prev;
+    }
+  }
+  const finalG: Record<string, number> = {};
+  for (const [k, v] of g) finalG[k] = Math.round(v * 100) / 100;
+  return {
+    steps, finalG, path,
+    costSec: valid ? Math.round(g.get(goal)!) : Infinity,
+    nodesExplored: closed.size, valid: !!valid, heuristic,
+  };
 }

@@ -9,6 +9,7 @@ type SessionData = { sub: string; role: string; districtId?: string; name?: stri
 const ROLE_LINKS: Record<string, { href: string; label: string }[]> = {
   dispatcher: [
     { href: "/dispatch", label: "Dispatch" },
+    { href: "/algorithms", label: "Algorithms" },
     { href: "/fleet", label: "Fleet" },
     { href: "/simulation", label: "Simulation" },
     { href: "/analytics", label: "Analytics" },
@@ -21,6 +22,7 @@ const ROLE_LINKS: Record<string, { href: string; label: string }[]> = {
   super_admin: [
     { href: "/admin", label: "Admin" },
     { href: "/dispatch", label: "Dispatch" },
+    { href: "/algorithms", label: "Algorithms" },
     { href: "/fleet", label: "Fleet" },
     { href: "/simulation", label: "Simulation" },
     { href: "/analytics", label: "Analytics" },
@@ -29,6 +31,7 @@ const ROLE_LINKS: Record<string, { href: string; label: string }[]> = {
   district_admin: [
     { href: "/admin", label: "Admin" },
     { href: "/dispatch", label: "Dispatch" },
+    { href: "/algorithms", label: "Algorithms" },
     { href: "/fleet", label: "Fleet" },
     { href: "/simulation", label: "Simulation" },
     { href: "/analytics", label: "Analytics" },

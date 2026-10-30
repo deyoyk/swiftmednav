@@ -192,4 +192,25 @@ async function main() {
     if (!u.some((e) => e.action === "comms.note")) throw new Error("comms missing from audit");
     return "audited";
   });
+
+  await step("RF tree-path traces real trees (or skips on old ML build)", async () => {
+    const r = await req("POST", "/api/ml/tree-path", { cookie: disp.cookie, body: { vehicle_count: 150, avg_speed: 10, hour: 9, n_trees: 2 } });
+    if (r.status === 200) {
+      const d = need(r.status, r.json);
+      const p0 = d.paths[0];
+      if (!p0 || !p0.nodes.length || !["vehicle_count", "avg_speed", "hour"].includes(p0.nodes[0].feature)) throw new Error("bad tree path");
+      return `class=${d.class} depth=${p0.nodes.length}`;
+    }
+    if ([502, 503, 404].includes(r.status)) return `SKIP (ML service predates tree-path: ${r.status})`;
+    throw new Error(`unexpected ${r.status}: ${JSON.stringify(r.json).slice(0, 120)}`);
+  });
+
+  await step("hospital match trace is eligible with human gate", async () => {
+    const r = await req("GET", "/api/incidents/INC-DEMO-001", { cookie: disp.cookie });
+    const d = need(r.status, r.json);
+    const m = d.hospitalMatch;
+    if (!m || !m.eligible || m.steps.length !== 5) throw new Error("bad hospital match");
+    if (m.humanDecision !== "accept") throw new Error("expected recorded accept, got " + m.humanDecision);
+    return `${m.hospital} eligible, decided: ${m.humanDecision}`;
+  });
 }

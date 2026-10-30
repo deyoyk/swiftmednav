@@ -3,7 +3,7 @@
 // Every mutation appends to audit[] + emits to SSE subscribers. All data labeled simulated.
 import { astar } from "./graph";
 import { demoEdges, demoNodes } from "./demoGraph";
-import { recommend, type Candidate } from "./recommend";
+import { fmtETA, recommend, type Candidate } from "./recommend";
 import { canTransition } from "./validate";
 
 export interface DemoIncident {
@@ -40,7 +40,7 @@ interface Store {
   routes: Map<string, RouteInfo>;
   handovers: Map<string, Handover>;
   fleet: Map<string, FleetUnit>;
-  hospital: { name: string; edAvail: number; edTotal: number; icuAvail: number; icuTotal: number; status: string; updatedAt: string };
+  hospital: { name: string; edAvail: number; edTotal: number; icuAvail: number; icuTotal: number; status: string; specialties: string[]; updatedAt: string };
   audit: AuditEntry[];
   closures: string[];
   congestionMult: number;
@@ -59,7 +59,7 @@ function freshStore(): Store {
     }]]),
     assignments: new Map(), routes: new Map(), handovers: new Map(),
     fleet: new Map(SEED_FLEET.map((a) => [a.vehicleId, { ...a }])),
-    hospital: { name: "Govt Kilpauk (SIMULATED)", edAvail: 5, edTotal: 20, icuAvail: 2, icuTotal: 8, status: "open", updatedAt: new Date().toISOString() },
+    hospital: { name: "Govt Kilpauk (SIMULATED)", edAvail: 5, edTotal: 20, icuAvail: 2, icuTotal: 8, status: "open", specialties: ["trauma", "ventilator", "ed", "icu", "general"], updatedAt: new Date().toISOString() },
     audit: [{ at: new Date().toISOString(), actor: "seed", action: "incident.created", entity: "incident", entityId: "INC-DEMO-001", detail: "Anna Nagar simulated accident" }],
     closures: [], congestionMult: 3, listeners: new Set(), seq: 1,
   };
@@ -328,6 +328,53 @@ export function hospitalDecision(incidentCode: string, decision: string, by: str
   s.hospital.updatedAt = new Date().toISOString();
   log(by, "hospital.decision", "incident", incidentCode, decision);
   return s.hospital;
+}
+
+export interface HospitalMatchStep { check: string; pass: boolean; detail: string }
+export interface HospitalMatch {
+  hospital: string; eligible: boolean; steps: HospitalMatchStep[];
+  etaSec: number | null; distanceKm: number | null;
+  humanDecision: string | null;
+  note: string;
+}
+// Clinical matching trace: eligibility filter -> capacity -> travel time -> HUMAN decision.
+// No weighted score ever overrides clinical eligibility; a human must accept.
+export function matchHospital(incidentCode: string): HospitalMatch {
+  const s = store();
+  const inc = getInc(incidentCode);
+  const h = s.hospital;
+  const steps: HospitalMatchStep[] = [];
+  const required = inc.requiredCapabilities ?? [];
+  const missing = required.filter((r) => !h.specialties.includes(r));
+  steps.push({
+    check: "Clinical capability match",
+    pass: missing.length === 0,
+    detail: required.length
+      ? (missing.length ? `missing: ${missing.join(", ")} (needs ${required.join(", ")}, hospital offers ${h.specialties.join(", ")})` : `all required capabilities covered (${required.join(", ")})`)
+      : "no specialist capabilities required",
+  });
+  const edOk = h.edAvail > 0;
+  steps.push({ check: "ED capacity reported", pass: edOk, detail: `ED ${h.edAvail}/${h.edTotal} free (reported ${Math.max(0, Math.round((Date.now() - Date.parse(h.updatedAt)) / 60000))} min ago)` });
+  const icuOk = h.icuAvail > 0;
+  steps.push({ check: "ICU capacity reported", pass: icuOk, detail: `ICU ${h.icuAvail}/${h.icuTotal} free` });
+  // corridor travel-time reference on the Anna Nagar demo graph (labeled as such)
+  const r = astar(demoNodes, edgesNow(), "INC", "HOSP");
+  const etaSec = r.valid ? Math.round(r.costSec) : null;
+  steps.push({ check: "Ambulance corridor travel time", pass: r.valid, detail: r.valid ? `INC → HOSP ${fmtETA(r.costSec)} over ${r.distanceKm} km (Anna Nagar demo graph, congestion-adjusted)` : "no valid route" });
+  const decisions = s.audit.filter((e) => e.entityId === incidentCode && e.action === "hospital.decision");
+  const humanDecision = decisions.length ? String(decisions[decisions.length - 1]!.detail) : null;
+  steps.push({
+    check: "Human coordinator decision",
+    pass: humanDecision === "accept",
+    detail: humanDecision ? `recorded: ${humanDecision} (audited — a person decided, not a score)` : "pending — no auto-accept; a coordinator must decide",
+  });
+  const eligible = missing.length === 0 && edOk;
+  return {
+    hospital: h.name, eligible, steps, etaSec,
+    distanceKm: r.valid ? r.distanceKm : null,
+    humanDecision,
+    note: "Eligibility is a hard clinical filter. Capacity informs, never overrides. Final call is human.",
+  };
 }
 
 export function analytics() {
